@@ -1,0 +1,708 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>게임 통합 랭킹</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 30px 20px;
+  background: #0b0e13;
+  color: #e9edf5;
+  font-family: Arial, "Noto Sans KR", sans-serif;
+}
+
+.container {
+  max-width: 1250px;
+  margin: auto;
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.subtitle {
+  color: #858e9e;
+  margin-top: 7px;
+  font-size: 13px;
+}
+
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 15px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+button:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.primary {
+  background: #536dfe;
+  color: white;
+}
+
+.dark-button {
+  background: #252c38;
+  color: white;
+}
+
+.danger {
+  background: #472329;
+  color: #ff8585;
+}
+
+.admin-panel {
+  display: none;
+  background: #111720;
+  border: 1px solid #252d39;
+  border-radius: 13px;
+  padding: 20px;
+  margin-bottom: 22px;
+}
+
+.admin-panel.active {
+  display: block;
+}
+
+.admin-panel h2 {
+  margin: 0 0 15px;
+  font-size: 18px;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+input, select {
+  min-width: 130px;
+  padding: 11px;
+  border: 1px solid #303947;
+  border-radius: 8px;
+  background: #0b1018;
+  color: white;
+  outline: none;
+  font-size: 14px;
+}
+
+input:focus, select:focus {
+  border-color: #536dfe;
+}
+
+#recordArea {
+  display: none;
+}
+
+#recordArea.active {
+  display: block;
+}
+
+#message {
+  min-height: 18px;
+  margin-top: 13px;
+  color: #8da3ff;
+  font-size: 13px;
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.game-card {
+  min-width: 0;
+  padding: 20px;
+  background: #111720;
+  border: 1px solid #252d39;
+  border-radius: 14px;
+}
+
+.game-card h2 {
+  margin: 0 0 18px;
+  font-size: 21px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+  white-space: nowrap;
+}
+
+th {
+  padding: 13px 8px;
+  background: #1a222e;
+  color: #aeb8c8;
+  font-size: 12px;
+}
+
+td {
+  padding: 14px 8px;
+  border-bottom: 1px solid #252d39;
+  font-size: 14px;
+}
+
+tr:first-child td {
+  font-weight: bold;
+}
+
+.rank {
+  color: #91a5ff;
+  font-weight: bold;
+}
+
+.first {
+  color: #ffd36b;
+}
+
+.empty {
+  padding: 30px 8px;
+  color: #777f8d;
+}
+
+.admin-column {
+  display: none;
+}
+
+body.admin .admin-column {
+  display: table-cell;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.action-buttons button {
+  padding: 7px 9px;
+  font-size: 12px;
+}
+
+.status {
+  margin-top: 17px;
+  text-align: right;
+  color: #777f8d;
+  font-size: 12px;
+}
+
+@media (max-width: 750px) {
+  body { padding: 20px 12px; }
+
+  header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  h1 { font-size: 23px; }
+
+  .game-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .game-card { padding: 15px; }
+
+  .controls input,
+  .controls select {
+    flex: 1;
+    min-width: 100px;
+  }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header>
+  <div>
+    <h1>게임 통합 랭킹</h1>
+    <div class="subtitle">게임 기록 및 순위 확인</div>
+  </div>
+
+  <button class="dark-button" id="adminToggle">
+    관리자 로그인
+  </button>
+</header>
+
+<section class="admin-panel" id="adminPanel">
+  <h2>관리자 설정</h2>
+
+  <div class="controls" id="loginArea">
+    <input type="password" id="pinInput" placeholder="관리자 PIN">
+    <button class="primary" id="loginButton">로그인</button>
+  </div>
+
+  <div id="recordArea">
+    <div class="controls">
+      <select id="gameSelect">
+        <option value="게임1">게임1</option>
+        <option value="게임2">게임2</option>
+      </select>
+
+      <input id="playerName" placeholder="플레이어 이름" maxlength="30">
+      <input id="playerTime" placeholder="기록 (00:35.21)">
+
+      <button class="primary" id="registerButton">기록 등록</button>
+      <button class="danger" id="logoutButton">로그아웃</button>
+    </div>
+  </div>
+
+  <div id="message"></div>
+</section>
+
+<main class="game-grid">
+
+  <section class="game-card">
+    <h2>게임 1 랭킹</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>순위</th>
+            <th>이름</th>
+            <th>기록</th>
+            <th>갱신 시간</th>
+            <th class="admin-column">관리</th>
+          </tr>
+        </thead>
+        <tbody id="game1Body">
+          <tr><td colspan="5" class="empty">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="game-card">
+    <h2>게임 2 랭킹</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>순위</th>
+            <th>이름</th>
+            <th>기록</th>
+            <th>갱신 시간</th>
+            <th class="admin-column">관리</th>
+          </tr>
+        </thead>
+        <tbody id="game2Body">
+          <tr><td colspan="5" class="empty">불러오는 중...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</main>
+
+<div class="status" id="status">데이터를 불러오는 중...</div>
+
+</div>
+
+<script>
+/* =====================================================
+   Cloudflare Worker 주소
+   기존에 사용하던 Worker 주소를 사용
+   ===================================================== */
+
+const API_URL =
+  "https://dry-meadow-1b47.blackhoodty2023.workers.dev/";
+
+
+let adminPin = null;
+let loading = false;
+
+
+/* =====================================================
+   API 요청
+   ===================================================== */
+
+async function apiGet(query) {
+  const response = await fetch(API_URL + query, {
+    method: "GET",
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw new Error("HTTP " + response.status);
+  }
+
+  return await response.json();
+}
+
+
+async function apiPost(data) {
+  const response = await fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(data)
+  });
+
+  if (!response.ok) {
+    throw new Error("HTTP " + response.status);
+  }
+
+  return await response.json();
+}
+
+
+/* =====================================================
+   메시지
+   ===================================================== */
+
+function message(text, error = false) {
+  const element = document.getElementById("message");
+
+  element.textContent = text;
+  element.style.color = error ? "#ff8585" : "#8da3ff";
+}
+
+
+/* =====================================================
+   관리자 패널
+   ===================================================== */
+
+document.getElementById("adminToggle").addEventListener("click", function() {
+  document.getElementById("adminPanel").classList.toggle("active");
+});
+
+
+/* =====================================================
+   관리자 로그인
+   ===================================================== */
+
+async function login() {
+  const pin = document.getElementById("pinInput").value.trim();
+
+  if (!pin) {
+    message("PIN을 입력해 주세요.", true);
+    return;
+  }
+
+  const button = document.getElementById("loginButton");
+  button.disabled = true;
+
+  try {
+    const result = await apiPost({
+      action: "login",
+      pin: pin
+    });
+
+    if (!result.success) {
+      throw new Error(result.message || "로그인 실패");
+    }
+
+    adminPin = pin;
+
+    document.body.classList.add("admin");
+    document.getElementById("loginArea").style.display = "none";
+    document.getElementById("recordArea").classList.add("active");
+    document.getElementById("adminToggle").textContent = "관리자 모드";
+
+    message("관리자 로그인 성공");
+    loadRankings();
+
+  } catch (error) {
+    message(error.message, true);
+
+  } finally {
+    button.disabled = false;
+  }
+}
+
+document.getElementById("loginButton").addEventListener("click", login);
+
+document.getElementById("pinInput").addEventListener("keydown", function(event) {
+  if (event.key === "Enter") login();
+});
+
+
+/* =====================================================
+   로그아웃
+   ===================================================== */
+
+function logout() {
+  adminPin = null;
+
+  document.body.classList.remove("admin");
+  document.getElementById("loginArea").style.display = "flex";
+  document.getElementById("recordArea").classList.remove("active");
+  document.getElementById("pinInput").value = "";
+  document.getElementById("adminToggle").textContent = "관리자 로그인";
+
+  message("로그아웃되었습니다.");
+  loadRankings();
+}
+
+document.getElementById("logoutButton").addEventListener("click", logout);
+
+
+/* =====================================================
+   기록 등록
+   ===================================================== */
+
+async function addRecord() {
+  const game = document.getElementById("gameSelect").value;
+  const name = document.getElementById("playerName").value.trim();
+  const time = document.getElementById("playerTime").value.trim();
+
+  if (!name || !time) {
+    message("이름과 기록을 입력해 주세요.", true);
+    return;
+  }
+
+  const button = document.getElementById("registerButton");
+  button.disabled = true;
+
+  try {
+    const result = await apiPost({
+      action: "register",
+      pin: adminPin,
+      game: game,
+      name: name,
+      time: time
+    });
+
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+
+    message(result.message);
+
+    document.getElementById("playerName").value = "";
+    document.getElementById("playerTime").value = "";
+
+    await loadRankings();
+
+  } catch (error) {
+    message(error.message, true);
+
+  } finally {
+    button.disabled = false;
+  }
+}
+
+document.getElementById("registerButton").addEventListener("click", addRecord);
+
+
+/* =====================================================
+   기록 수정
+   ===================================================== */
+
+async function editRecord(game, oldName) {
+  const newName = prompt("변경할 이름을 입력하세요.", oldName);
+
+  if (newName === null) return;
+
+  if (!newName.trim()) {
+    message("이름을 입력해 주세요.", true);
+    return;
+  }
+
+  const newTime = prompt("변경할 기록을 입력하세요. (예: 00:35.21)");
+
+  if (newTime === null) return;
+
+  if (!newTime.trim()) {
+    message("기록을 입력해 주세요.", true);
+    return;
+  }
+
+  try {
+    const result = await apiPost({
+      action: "edit",
+      pin: adminPin,
+      game: game,
+      oldName: oldName,
+      newName: newName.trim(),
+      time: newTime.trim()
+    });
+
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+
+    message(result.message);
+    await loadRankings();
+
+  } catch (error) {
+    message(error.message, true);
+  }
+}
+
+
+/* =====================================================
+   기록 삭제
+   ===================================================== */
+
+async function deleteRecord(game, name) {
+  if (!confirm(name + "님의 기록을 삭제할까요?")) {
+    return;
+  }
+
+  try {
+    const result = await apiPost({
+      action: "delete",
+      pin: adminPin,
+      game: game,
+      name: name
+    });
+
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+
+    message(result.message);
+    await loadRankings();
+
+  } catch (error) {
+    message(error.message, true);
+  }
+}
+
+
+/* =====================================================
+   셀 생성
+   ===================================================== */
+
+function addCell(row, value, className = "") {
+  const cell = document.createElement("td");
+  cell.textContent = value == null ? "" : String(value);
+
+  if (className) cell.className = className;
+
+  row.appendChild(cell);
+  return cell;
+}
+
+
+/* =====================================================
+   랭킹 표시
+   ===================================================== */
+
+function renderGame(game, records, targetId) {
+  const tbody = document.getElementById(targetId);
+  tbody.replaceChildren();
+
+  if (!Array.isArray(records) || records.length === 0) {
+    const row = document.createElement("tr");
+    const cell = addCell(row, "등록된 기록이 없습니다.", "empty");
+    cell.colSpan = 5;
+    tbody.appendChild(row);
+    return;
+  }
+
+  records.forEach(function(record) {
+    const row = document.createElement("tr");
+
+    const rankCell = addCell(row, record.rank, "rank");
+
+    if (record.rank === 1) {
+      rankCell.classList.add("first");
+    }
+
+    addCell(row, record.name);
+    addCell(row, record.time);
+    addCell(row, record.updated || "-");
+
+    const actionCell = document.createElement("td");
+    actionCell.className = "admin-column";
+
+    if (adminPin) {
+      const buttons = document.createElement("div");
+      buttons.className = "action-buttons";
+
+      const editButton = document.createElement("button");
+      editButton.className = "dark-button";
+      editButton.textContent = "수정";
+      editButton.addEventListener("click", function() {
+        editRecord(game, record.name);
+      });
+
+      const deleteButton = document.createElement("button");
+      deleteButton.className = "danger";
+      deleteButton.textContent = "삭제";
+      deleteButton.addEventListener("click", function() {
+        deleteRecord(game, record.name);
+      });
+
+      buttons.append(editButton, deleteButton);
+      actionCell.appendChild(buttons);
+    }
+
+    row.appendChild(actionCell);
+    tbody.appendChild(row);
+  });
+}
+
+
+/* =====================================================
+   랭킹 불러오기
+   ===================================================== */
+
+async function loadRankings() {
+  if (loading) return;
+
+  loading = true;
+
+  try {
+    const result = await apiGet("?rankings=true");
+
+    if (!result.success || !result.rankings) {
+      throw new Error(result.message || "랭킹 데이터 오류");
+    }
+
+    renderGame("게임1", result.rankings["게임1"], "game1Body");
+    renderGame("게임2", result.rankings["게임2"], "game2Body");
+
+    document.getElementById("status").textContent =
+      "마지막 업데이트: " + new Date().toLocaleTimeString("ko-KR");
+
+  } catch (error) {
+    document.getElementById("status").textContent =
+      "데이터 오류: " + error.message;
+
+    console.error(error);
+
+  } finally {
+    loading = false;
+  }
+}
+
+
+/* =====================================================
+   시작 및 자동 갱신
+   ===================================================== */
+
+loadRankings();
+setInterval(loadRankings, 10000);
+
+</script>
+</body>
+</html>
